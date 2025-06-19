@@ -1,24 +1,19 @@
-#  ██████╗ ████████╗██╗██╗     ███████╗
-# ██╔═══██╗╚══██╔══╝██║██║     ██╔════╝
-# ██║   ██║   ██║   ██║██║     █████╗  
-# ██║▄▄ ██║   ██║   ██║██║     ██╔══╝  
-# ╚██████╔╝   ██║   ██║███████╗███████╗
-#  ╚══▀▀═╝    ╚═╝   ╚═╝╚══════╝╚══════╝
-                                     
-
-from libqtile import bar, hook, layout, qtile, widget
+from libqtile import bar, layout, qtile, widget, hook
 from libqtile.config import Click, Drag, Group, Key, Match, Screen
 from libqtile.lazy import lazy
-from libqtile.utils import guess_terminal
 from libqtile.backend.wayland import InputConfig
+import os,subprocess
 
+# Default Keys
 mod = "mod4"
-terminal = guess_terminal()
+
+# Default Apps
+terminal = "foot"
+app_launcher = "fuzzel --hide-before-typing"
+
 
 keys = [
-    # A list of available commands that can be bound to keys can be found
-    # at https://docs.qtile.org/en/latest/manual/config/lazy.html
-    # Switch between windows
+
     Key([mod], "h", lazy.layout.left(), desc="Move focus to left"),
     Key([mod], "l", lazy.layout.right(), desc="Move focus to right"),
     Key([mod], "j", lazy.layout.down(), desc="Move focus down"),
@@ -60,7 +55,7 @@ keys = [
     Key([mod], "t", lazy.window.toggle_floating(), desc="Toggle floating on the focused window"),
     Key([mod, "control"], "r", lazy.reload_config(), desc="Reload the config"),
     Key([mod, "control"], "q", lazy.shutdown(), desc="Shutdown Qtile"),
-    Key([mod], "r", lazy.spawn("fuzzel"), desc="Spawn fuzzel"),
+    Key([mod], "r", lazy.spawn(app_launcher), desc="Spawn a command using a prompt widget"),
 
     # Control Brighness
     Key([], "XF86MonBrightnessUp", lazy.spawn("brightnessctl set +5%")),
@@ -76,13 +71,14 @@ keys = [
     Key([], "XF86AudioRaiseVolume", lazy.spawn("wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+")),
     Key([], "XF86AudioLowerVolume", lazy.spawn("wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%-")),
     Key([], "XF86AudioMute", lazy.spawn("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle")),
-    
+
+
 ]
 
 # Add key bindings to switch VTs in Wayland.
 # We can't check qtile.core.name in default config as it is loaded before qtile is started
 # We therefore defer the check until the key binding is run by using .when(func=...)
-for vt in range(1, 6):
+for vt in range(1, 8):
     keys.append(
         Key(
             ["control", "mod1"],
@@ -93,7 +89,7 @@ for vt in range(1, 6):
     )
 
 
-groups = [Group(i) for i in "123456"]
+groups = [Group(i) for i in "12345"]
 
 for i in groups:
     keys.extend(
@@ -120,24 +116,24 @@ for i in groups:
     )
 
 layouts = [
-    layout.Columns(border_focus_stack=["#e67e22", "#8f3d3d"], border_width=2),
+    layout.Columns(border_focus_stack=["#d75f5f", "#8f3d3d"], border_width=4),
     layout.Max(),
     # Try more layouts by unleashing below layouts.
-    # layout.Stack(num_stacks=2),
-    # layout.Bsp(),
-    # layout.Matrix(),
+    layout.Stack(num_stacks=2),
+    layout.Bsp(),
+    layout.Matrix(),
     layout.MonadTall(),
     layout.MonadWide(),
-    # layout.RatioTile(),
-    # layout.Tile(),
-    # layout.TreeTab(),
-    # layout.VerticalTile(),
-    # layout.Zoomy(),
+    layout.RatioTile(),
+    layout.Tile(),
+    layout.TreeTab(),
+    layout.VerticalTile(),
+    layout.Zoomy(),
 ]
 
 widget_defaults = dict(
     font="MartianMono Nerd Font Mono",
-    fontsize=12,
+    fontsize=13,
     padding=3,
 )
 extension_defaults = widget_defaults.copy()
@@ -146,13 +142,16 @@ screens = [
     Screen(
         bottom=bar.Bar(
             [
-                widget.CurrentLayout(),
                 widget.GroupBox(),
                 widget.Prompt(),
+                widget.CurrentLayout(
+                    background="#DAF7A6",
+                    foreground="#404040",
+                ),
                 widget.WindowName(
-                    backgound='#f1948a',
-                    padding=4,
-                    max_chars=40
+                    forground="#a0bef9",
+                    max_chars=15,
+                    format=' {state}{name} ',
                 ),
                 widget.Chord(
                     chords_colors={
@@ -160,44 +159,37 @@ screens = [
                     },
                     name_transform=lambda name: name.upper(),
                 ),
+                # widget.TextBox("default config", name="default"),
+                # widget.TextBox("Press &lt;M-r&gt; to spawn", foreground="#d75f5f"),
                 # NB Systray is incompatible with Wayland, consider using StatusNotifier instead
-                widget.Net(
-                    background='#85c1e9',
-                    foreground='#2c3e50',
-                    interface="wlp1s0"),
+                
                 widget.Clock(
-                    background='#eabe82',
-                    foreground='#2c3e50',
-                    format=" 📅 %Y-%m-%d | %a | 🕰️ %I:%M %p "
-                ),
+                    foreground='#51c903',
+                    format="| 📅 %Y-%m-%d  %a  🕰️ %I:%M %p |"),
                 widget.Backlight(
-                    background='#979a9a',
-                    foreground='#2c3e50',
+                    foreground='#c9c903',
                     brightness_file='/sys/class/backlight/intel_backlight/brightness',
                     max_brightness_file='/sys/class/backlight/intel_backlight/max_brightness',
-                    format=" 💡 {percent:2.0%} ",
+                    format=" ☀️ {percent:2.0%} |",
                 ),
                 widget.Volume(
-                    background='#af7ac5',
-                    foreground='#2c3e50',
-                    unmute_format=" 📢 {volume}% ",
-                    mute_format=" 🔕 "
+                    foreground='#03c9c0',
+                    unmute_format=" 📢 {volume}% |",
+                    mute_format=" 🔕 |"
                 ),
                 widget.Battery(
-                    background='#DAF7A6',
-                    foreground='#2c3e50',
-                    charge_char='🔺',
-                    discharge_char='🔻',
+                    foreground='#03c957',
+                    charge_char='⚡ ',
+                    discharge_char=' ',
                     full_char='🔋',
-                    low_background='#ff6363',
+                    low_forground='#ff6363',
                     low_percentage=0.15,
-                    format=" {char}{percent:2.0%} ",
+                    format=" {char}{percent:2.0%} |",
                     update_interval=1,
                 ),
-                widget.StatusNotifier(),
-                # widget.Systray(),
+                widget.Systray(),
             ],
-            28,
+            30,
             # border_width=[2, 0, 2, 0],  # Draw top and bottom borders
             # border_color=["ff00ff", "000000", "ff00ff", "000000"]  # Borders are magenta
         ),
@@ -246,10 +238,10 @@ wl_input_rules = {
    "*": InputConfig(tap=True),
 }
 
-@hook.subscribe.startup_once
-def start_once():
-    home = os.path.expanduser('~')
-    subprocess.call([home + '/.config/qtile/autostart.sh'])
+# @hook.subscribe.startup_once
+# def autostart():
+#     home = os.path.expanduser('~/.config/qtile/autostart.sh')
+#     subprocess.call(home)
 
 # xcursor theme (string or None) and size (integer) for Wayland backend
 wl_xcursor_theme = None
